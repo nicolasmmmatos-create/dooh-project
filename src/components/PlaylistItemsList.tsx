@@ -277,7 +277,7 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
               onDragOver={(e) => e.preventDefault()}
               className={`flex items-center gap-2 p-2 rounded-lg border bg-muted/30 group transition-all ${
                 dragIndex === index ? "border-primary opacity-50" : "border-border"
-              }`}
+              } ${!item.is_active ? "opacity-50" : ""}`}
             >
               <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0 cursor-grab active:cursor-grabbing" />
               <div className="w-10 h-7 rounded overflow-hidden bg-muted shrink-0 flex items-center justify-center">
