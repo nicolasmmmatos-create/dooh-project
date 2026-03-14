@@ -214,10 +214,9 @@ const Schedule = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
                   onClick={() => handleToggleActive(s.id, s.is_active)}
                   title={s.is_active ? "Desativar" : "Ativar"}
-                  className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   {s.is_active
                     ? <ToggleRight className="w-5 h-5 text-primary" />
