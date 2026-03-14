@@ -229,10 +229,9 @@ const DeviceMap = () => {
     // Brazil: states or municipalities
     if (countryFilter === "BR" || countryFilter === "Brasil" || countryFilter === "Brazil") {
       if (regionFilter !== "all") {
-        // Try to get IBGE code for the selected region
         var ibgeCode = BRAZIL_STATE_IBGE[regionFilter];
         if (ibgeCode) {
-          return "https://servicodados.ibge.gov.br/api/v3/malhas/estados/" + ibgeCode + "?formato=application/vnd.geo+json";
+          return "https://servicodados.ibge.gov.br/api/v3/malhas/estados/" + ibgeCode + "/municipios?formato=application/vnd.geo+json";
         }
       }
       return BRAZIL_STATES_URL;
