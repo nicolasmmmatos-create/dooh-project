@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -242,6 +242,65 @@ export type Database = {
           },
         ]
       }
+      support_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          resolved: boolean
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resolved?: boolean
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resolved?: boolean
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "support_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users_profile: {
         Row: {
           created_at: string | null
@@ -386,6 +445,22 @@ export type Database = {
           user_agent: string
         }[]
       }
+      get_my_videos: {
+        Args: never
+        Returns: {
+          created_at: string
+          duration: number
+          file_size: number
+          filename: string
+          id: string
+          mime_type: string
+          order_index: number
+          playlist_id: string
+          storage_path: string
+          thumbnail_url: string
+          title: string
+        }[]
+      }
       get_or_create_playlist_token: {
         Args: { p_playlist_id: string }
         Returns: string
@@ -404,6 +479,16 @@ export type Database = {
           type: string
         }[]
       }
+      insert_video: {
+        Args: {
+          p_duration?: number
+          p_file_size?: number
+          p_filename: string
+          p_mime_type?: string
+          p_storage_path: string
+        }
+        Returns: Json
+      }
       log_player_error: {
         Args: {
           p_device_id: string
@@ -411,14 +496,10 @@ export type Database = {
           p_token: string
           p_video_id?: string
         }
-        Returns: Json
+        Returns: undefined
       }
       record_analytics: {
-        Args: {
-          p_device_id: string
-          p_duration_watched?: number
-          p_video_id: string
-        }
+        Args: { p_device_id: string; p_duration?: number; p_video_id: string }
         Returns: undefined
       }
       remove_device: { Args: { p_device_id: string }; Returns: Json }
