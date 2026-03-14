@@ -306,6 +306,31 @@ const MediaLibrary = () => {
         onComplete={fetchMedia}
       />
 
+      <Dialog open={!!renameItem} onOpenChange={(open) => { if (!open) setRenameItem(null); }}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Renomear mídia</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 pt-2">
+            <Input
+              value={renamingValue}
+              onChange={(e) => setRenamingValue(e.target.value)}
+              placeholder="Novo nome..."
+              className="bg-background border-border"
+              onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRenameItem(null)}>Cancelar</Button>
+              <Button onClick={handleRename} disabled={renaming || !renamingValue.trim()}>
+                {renaming ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AddToPlaylistDialog
         open={playlistDialogOpen}
         onOpenChange={setPlaylistDialogOpen}
