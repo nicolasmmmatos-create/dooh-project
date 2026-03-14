@@ -310,7 +310,7 @@ const DeviceMap = () => {
                 <SelectValue placeholder="Estado / Região" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os estados</SelectItem>
+                <SelectItem value="all">Todos os estados / regiões</SelectItem>
                 {regions.map(function (r) {
                   return (
                     <SelectItem key={r} value={r}>
