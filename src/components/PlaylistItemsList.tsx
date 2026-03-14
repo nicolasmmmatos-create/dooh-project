@@ -46,7 +46,7 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
     setLoading(true);
     const { data, error } = await supabase
       .from("videos")
-      .select("id, filename, storage_path, order_index, duration, page_number")
+      .select("id, filename, storage_path, order_index, duration, page_number, is_active")
       .eq("playlist_id", playlistId)
       .order("page_number", { ascending: true })
       .order("order_index", { ascending: true });
