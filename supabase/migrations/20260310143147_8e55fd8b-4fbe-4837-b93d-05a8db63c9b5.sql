@@ -1,0 +1,1 @@
+ALTER TABLE public.videos ADD COLUMN IF NOT EXISTS page_number integer NOT NULL DEFAULT 1;

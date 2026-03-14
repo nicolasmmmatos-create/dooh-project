@@ -1,0 +1,569 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  public: {
+    Tables: {
+      access_tokens: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_primary: boolean | null
+          playlist_id: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          playlist_id?: string | null
+          token: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          playlist_id?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_tokens_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_log: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          meta: Json | null
+          severity: string | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          meta?: Json | null
+          severity?: string | null
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          meta?: Json | null
+          severity?: string | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      analytics: {
+        Row: {
+          device_id: string | null
+          duration_watched: number | null
+          id: string
+          played_at: string | null
+          video_id: string | null
+        }
+        Insert: {
+          device_id?: string | null
+          duration_watched?: number | null
+          id?: string
+          played_at?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          device_id?: string | null
+          duration_watched?: number | null
+          id?: string
+          played_at?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          device_fingerprint: string | null
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          last_seen: string | null
+          latitude: number | null
+          location_label: string | null
+          longitude: number | null
+          name: string | null
+          playlist_id: string | null
+          region: string | null
+          timezone: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_seen?: string | null
+          latitude?: number | null
+          location_label?: string | null
+          longitude?: number | null
+          name?: string | null
+          playlist_id?: string | null
+          region?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_seen?: string | null
+          latitude?: number | null
+          location_label?: string | null
+          longitude?: number | null
+          name?: string | null
+          playlist_id?: string | null
+          region?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          id: string
+          loop: boolean | null
+          name: string
+          settings: Json | null
+          transition_duration: number | null
+          transition_image_url: string | null
+          transition_type: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          loop?: boolean | null
+          name: string
+          settings?: Json | null
+          transition_duration?: number | null
+          transition_image_url?: string | null
+          transition_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          loop?: boolean | null
+          name?: string
+          settings?: Json | null
+          transition_duration?: number | null
+          transition_image_url?: string | null
+          transition_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users_profile: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          name: string | null
+          plan: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          name?: string | null
+          plan?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          plan?: string | null
+        }
+        Relationships: []
+      }
+      videos: {
+        Row: {
+          created_at: string | null
+          duration: number | null
+          file_size: number | null
+          filename: string
+          id: string
+          mime_type: string | null
+          order_index: number | null
+          page_number: number
+          playlist_id: string | null
+          storage_path: string
+          thumbnail_url: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration?: number | null
+          file_size?: number | null
+          filename: string
+          id?: string
+          mime_type?: string | null
+          order_index?: number | null
+          page_number?: number
+          playlist_id?: string | null
+          storage_path: string
+          thumbnail_url?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration?: number | null
+          file_size?: number | null
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          order_index?: number | null
+          page_number?: number
+          playlist_id?: string | null
+          storage_path?: string
+          thumbnail_url?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      cleanup_inactive_devices: { Args: never; Returns: undefined }
+      device_heartbeat:
+        | {
+            Args: {
+              p_device_fingerprint: string
+              p_device_name?: string
+              p_ip_address?: string
+              p_token: string
+              p_user_agent?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_city?: string
+              p_country?: string
+              p_device_fingerprint: string
+              p_device_name?: string
+              p_ip_address?: string
+              p_latitude?: number
+              p_longitude?: number
+              p_region?: string
+              p_timezone?: string
+              p_token: string
+              p_user_agent?: string
+            }
+            Returns: Json
+          }
+      get_active_screens: { Args: { p_playlist_id: string }; Returns: number }
+      get_all_active_screens: {
+        Args: never
+        Returns: {
+          active_count: number
+          playlist_id: string
+        }[]
+      }
+      get_my_devices: {
+        Args: never
+        Returns: {
+          address: string
+          city: string
+          country: string
+          created_at: string
+          id: string
+          ip_address: string
+          is_active: boolean
+          is_online: boolean
+          last_seen: string
+          latitude: number
+          location_label: string
+          longitude: number
+          name: string
+          playlist_id: string
+          playlist_name: string
+          region: string
+          timezone: string
+          user_agent: string
+        }[]
+      }
+      get_or_create_playlist_token: {
+        Args: { p_playlist_id: string }
+        Returns: string
+      }
+      get_playlist_by_token: { Args: { p_token: string }; Returns: Json }
+      get_playlist_updated_at: { Args: { p_token: string }; Returns: string }
+      get_recent_activity: {
+        Args: { p_limit?: number; p_type?: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          meta: Json
+          severity: string
+          title: string
+          type: string
+        }[]
+      }
+      log_player_error: {
+        Args: {
+          p_device_id: string
+          p_error_msg: string
+          p_token: string
+          p_video_id?: string
+        }
+        Returns: Json
+      }
+      record_analytics: {
+        Args: {
+          p_device_id: string
+          p_duration_watched?: number
+          p_video_id: string
+        }
+        Returns: undefined
+      }
+      remove_device: { Args: { p_device_id: string }; Returns: Json }
+      set_user_plan: {
+        Args: { p_plan: string; p_user_id: string }
+        Returns: undefined
+      }
+      update_device_info: {
+        Args: {
+          p_address?: string
+          p_device_id: string
+          p_location_label?: string
+          p_name?: string
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
