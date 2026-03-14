@@ -167,6 +167,20 @@ const MediaLibrary = () => {
             <List className="w-4 h-4" />
           </button>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs h-9"
+          onClick={() => {
+            if (selectedIds.size === filtered.length && filtered.length > 0) {
+              setSelectedIds(new Set());
+            } else {
+              setSelectedIds(new Set(filtered.map((m) => m.id)));
+            }
+          }}
+        >
+          {selectedIds.size === filtered.length && filtered.length > 0 ? "Desmarcar todas" : "Selecionar todas"}
+        </Button>
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">{selectedIds.size} selecionado(s)</span>
