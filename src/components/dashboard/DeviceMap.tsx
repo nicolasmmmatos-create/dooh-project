@@ -428,6 +428,9 @@ const DeviceMap = () => {
 
             {filtered.map(function (device) {
               var online = isOnline(device);
+              var r = 6 / zoom;
+              var rPing = 12 / zoom;
+              var sw = 1 / zoom;
               return (
                 <Marker
                   key={device.id}
@@ -454,16 +457,16 @@ const DeviceMap = () => {
                 >
                   {online && (
                     <circle
-                      r={2}
+                      r={rPing}
                       fill="none"
                       stroke="hsl(142, 71%, 45%)"
-                      strokeWidth={1}
+                      strokeWidth={sw}
                       opacity={0.4}
                       style={{ animation: "device-ping 2s ease-out infinite" }}
                     />
                   )}
                   <circle
-                    r={online ? 2 : 1.5}
+                    r={online ? r : r * 0.8}
                     fill={
                       online
                         ? "hsl(142, 71%, 45%)"
