@@ -242,6 +242,48 @@ export type Database = {
           },
         ]
       }
+      schedules: {
+        Row: {
+          created_at: string | null
+          days_of_week: number[] | null
+          id: string
+          is_active: boolean
+          label: string | null
+          specific_date: string | null
+          target_id: string
+          target_type: string
+          time_end: string
+          time_start: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          days_of_week?: number[] | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          specific_date?: string | null
+          target_id: string
+          target_type: string
+          time_end: string
+          time_start: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          days_of_week?: number[] | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          specific_date?: string | null
+          target_id?: string
+          target_type?: string
+          time_end?: string
+          time_start?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_conversations: {
         Row: {
           created_at: string
@@ -472,6 +514,22 @@ export type Database = {
           user_agent: string
         }[]
       }
+      get_my_schedules: {
+        Args: never
+        Returns: {
+          created_at: string
+          days_of_week: number[]
+          id: string
+          is_active: boolean
+          label: string
+          specific_date: string
+          target_id: string
+          target_name: string
+          target_type: string
+          time_end: string
+          time_start: string
+        }[]
+      }
       get_my_videos: {
         Args: never
         Returns: {
@@ -525,6 +583,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      process_schedules: { Args: never; Returns: undefined }
       record_analytics: {
         Args: { p_device_id: string; p_duration?: number; p_video_id: string }
         Returns: undefined
