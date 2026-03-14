@@ -210,6 +210,21 @@ const MediaLibrary = () => {
               <ListVideo className="w-4 h-4 mr-1" />
               Playlist
             </Button>
+            {selectedIds.size === 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const item = media.find((m) => selectedIds.has(m.id));
+                  if (item) {
+                    setRenameItem(item);
+                    setRenamingValue(item.filename.replace(/\.[^/.]+$/, ""));
+                  }
+                }}
+              >
+                Renomear
+              </Button>
+            )}
             <Button variant="destructive" size="sm" onClick={handleDeleteSelected} disabled={deleting}>
               {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
               Excluir
