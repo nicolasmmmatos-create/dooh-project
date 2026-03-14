@@ -151,6 +151,24 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
     onChanged?.();
   };
 
+  const toggleActive = async (id: string, current: boolean) => {
+    setAllItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, is_active: !current } : it))
+    );
+    const { error } = await supabase
+      .from("videos")
+      .update({ is_active: !current })
+      .eq("id", id);
+    if (error) {
+      setAllItems((prev) =>
+        prev.map((it) => (it.id === id ? { ...it, is_active: current } : it))
+      );
+      toast({ title: "Erro ao atualizar mídia", description: error.message, variant: "destructive" });
+    } else {
+      onChanged?.();
+    }
+  };
+
   const removeItem = async (id: string) => {
     setSaving(true);
     const { error } = await supabase.from("videos").update({ playlist_id: null }).eq("id", id);
