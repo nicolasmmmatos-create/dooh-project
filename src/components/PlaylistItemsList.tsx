@@ -301,6 +301,18 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0"
+                title={item.is_active ? "Desativar mídia" : "Ativar mídia"}
+                onClick={() => toggleActive(item.id, item.is_active)}
+              >
+                {item.is_active
+                  ? <Eye className="w-3.5 h-3.5 text-primary" />
+                  : <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
+                }
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
                 disabled={saving}
                 onClick={() => removeItem(item.id)}
               >
