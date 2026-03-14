@@ -288,9 +288,16 @@ const DeviceMap = () => {
             <SelectContent>
               <SelectItem value="all">Todos os países</SelectItem>
               {countries.map(function (c) {
+                var countryLabels: Record<string, string> = {
+                  BR: "🇧🇷 Brasil",
+                  US: "🇺🇸 Estados Unidos",
+                  AR: "🇦🇷 Argentina",
+                  PT: "🇵🇹 Portugal",
+                  ES: "🇪🇸 Espanha",
+                };
                 return (
                   <SelectItem key={c} value={c}>
-                    {c}
+                    {countryLabels[c] || c}
                   </SelectItem>
                 );
               })}
