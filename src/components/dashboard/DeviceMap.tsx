@@ -271,8 +271,8 @@ const DeviceMap = () => {
         <style>{`
           @keyframes device-ping {
             0%   { r: 5;  opacity: 0.8; }
-            70%  { r: 10; opacity: 0.1; }
-            100% { r: 10; opacity: 0;   }
+            70%  { r: 8; opacity: 0.1; }
+            100% { r: 8; opacity: 0;   }
           }
         `}</style>
         <ComposableMap
