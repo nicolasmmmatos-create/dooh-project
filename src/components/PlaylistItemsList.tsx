@@ -11,6 +11,7 @@ interface PlaylistVideo {
   order_index: number | null;
   duration: number | null;
   page_number: number;
+  is_active: boolean;
   thumbnailUrl?: string;
 }
 
