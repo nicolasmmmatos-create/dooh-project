@@ -57,12 +57,12 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
       return;
     }
 
-    const withThumbs: PlaylistVideo[] = await Promise.all(
-      (data || []).map(async (v) => {
-        const { data: urlData } = await supabase.storage.from("videos").createSignedUrl(v.storage_path, 3600);
-        return { ...v, page_number: v.page_number || 1, thumbnailUrl: urlData?.signedUrl || "" };
-      })
-    );
+    const withThumbs: PlaylistVideo[] = (data || []).map((v) => ({
+      ...v,
+      page_number: v.page_number || 1,
+      is_active: v.is_active !== false,
+      thumbnailUrl: `https://qbslxssxkxgugwkjnlqu.supabase.co/storage/v1/object/public/videos/${v.storage_path}`,
+    }));
 
     setAllItems(withThumbs);
 
