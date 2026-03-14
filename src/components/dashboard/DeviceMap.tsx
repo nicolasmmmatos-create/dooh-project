@@ -358,9 +358,9 @@ const DeviceMap = () => {
       <div className="relative h-[420px] overflow-hidden rounded-b-xl">
         <style>{`
           @keyframes device-ping {
-            0%   { r: 5;  opacity: 0.8; }
-            70%  { r: 8; opacity: 0.1; }
-            100% { r: 8; opacity: 0;   }
+            0%   { r: 2;  opacity: 0.8; }
+            70%  { r: 5; opacity: 0.1; }
+            100% { r: 5; opacity: 0;   }
           }
         `}</style>
         <ComposableMap
@@ -458,16 +458,16 @@ const DeviceMap = () => {
                 >
                   {online && (
                     <circle
-                      r={5}
+                      r={2}
                       fill="none"
                       stroke="hsl(142, 71%, 45%)"
-                      strokeWidth={1.5}
+                      strokeWidth={1}
                       opacity={0.4}
                       style={{ animation: "device-ping 2s ease-out infinite" }}
                     />
                   )}
                   <circle
-                    r={online ? 5 : 4}
+                    r={online ? 2 : 1.5}
                     fill={
                       online
                         ? "hsl(142, 71%, 45%)"
