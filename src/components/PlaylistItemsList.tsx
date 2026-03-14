@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Loader2, GripVertical, Film, Clock, Plus } from "lucide-react";
+import { Trash2, Loader2, GripVertical, Film, Clock, Plus, Eye, EyeOff } from "lucide-react";
 
 interface PlaylistVideo {
   id: string;
