@@ -19,7 +19,7 @@ import {
 
 var GEO_110 = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 var GEO_50 = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
-var BRAZIL_STATES_URL = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.json";
+var BRAZIL_STATES_URL = "https://raw.githubusercontent.com/giuliano-macedo/geodata-br-states/main/geojson/br_states.json";
 
 // Mapping Brazilian state abbreviations / names to IBGE codes
 var BRAZIL_STATE_IBGE: Record<string, string> = {
