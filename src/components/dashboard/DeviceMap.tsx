@@ -71,6 +71,7 @@ type StatusFilter = "all" | "online" | "offline";
 function isOnline(d: Device) {
   if (!d.is_active) return false;
   if (!d.last_seen) return false;
+  if (!d.playlist_id) return false;
   var diff = Date.now() - new Date(d.last_seen).getTime();
   return diff < 3 * 60 * 1000;
 }
