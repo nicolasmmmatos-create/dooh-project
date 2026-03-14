@@ -21,6 +21,37 @@ var GEO_110 = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 var GEO_50 = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
 var BRAZIL_STATES_URL = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.json";
 
+// Mapping Brazilian state abbreviations / names to IBGE codes
+var BRAZIL_STATE_IBGE: Record<string, string> = {
+  AC: "12", Acre: "12",
+  AL: "27", Alagoas: "27",
+  AP: "16", "Amapá": "16", Amapa: "16",
+  AM: "13", Amazonas: "13",
+  BA: "29", Bahia: "29",
+  CE: "23", "Ceará": "23", Ceara: "23",
+  DF: "53", "Distrito Federal": "53",
+  ES: "32", "Espírito Santo": "32", "Espirito Santo": "32",
+  GO: "52", "Goiás": "52", Goias: "52",
+  MA: "21", "Maranhão": "21", Maranhao: "21",
+  MT: "51", "Mato Grosso": "51",
+  MS: "50", "Mato Grosso do Sul": "50",
+  MG: "31", "Minas Gerais": "31",
+  PA: "15", "Pará": "15", Para: "15",
+  PB: "25", "Paraíba": "25", Paraiba: "25",
+  PR: "41", "Paraná": "41", Parana: "41",
+  PE: "26", Pernambuco: "26",
+  PI: "22", "Piauí": "22", Piaui: "22",
+  RJ: "33", "Rio de Janeiro": "33",
+  RN: "24", "Rio Grande do Norte": "24",
+  RS: "43", "Rio Grande do Sul": "43",
+  RO: "11", "Rondônia": "11", Rondonia: "11",
+  RR: "14", Roraima: "14",
+  SC: "42", "Santa Catarina": "42",
+  SP: "35", "São Paulo": "35", "Sao Paulo": "35",
+  SE: "28", Sergipe: "28",
+  TO: "17", Tocantins: "17",
+};
+
 interface Device {
   id: string;
   name: string | null;
@@ -91,6 +122,7 @@ const DeviceMap = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [countryFilter, setCountryFilter] = useState("all");
+  const [regionFilter, setRegionFilter] = useState("all");
   const [tooltip, setTooltip] = useState<{
     device: Device;
     x: number;
@@ -124,11 +156,17 @@ const DeviceMap = () => {
         if (statusFilter === "online" && !isOnline(d)) return false;
         if (statusFilter === "offline" && isOnline(d)) return false;
         if (countryFilter !== "all" && d.country !== countryFilter) return false;
+        if (regionFilter !== "all" && d.region !== regionFilter) return false;
         return true;
       });
     },
-    [devices, statusFilter, countryFilter]
+    [devices, statusFilter, countryFilter, regionFilter]
   );
+
+  // Reset region filter when country changes
+  useEffect(function () {
+    setRegionFilter("all");
+  }, [countryFilter]);
 
   // Auto-focus on first load
   useEffect(function () {
@@ -156,6 +194,19 @@ const DeviceMap = () => {
     [devices]
   );
 
+  // Regions derived from devices for the selected country
+  var regions = useMemo(
+    function () {
+      if (countryFilter === "all") return [];
+      var set = new Set<string>();
+      devices.forEach(function (d) {
+        if (d.country === countryFilter && d.region) set.add(d.region);
+      });
+      return Array.from(set).sort();
+    },
+    [devices, countryFilter]
+  );
+
   function focusOnDevices() {
     var withCoords = filtered.filter(function (d) { return d.latitude !== null && d.longitude !== null; });
     if (withCoords.length === 0) return;
@@ -164,12 +215,31 @@ const DeviceMap = () => {
     setZoom(bb.zoom);
   }
 
-  // Choose GeoJSON based on zoom and center
+  // Choose base GeoJSON based on zoom and center
   var geoUrl = useMemo(function () {
-    if (zoom > 6 && isCenterInBrazil(center)) return BRAZIL_STATES_URL;
     if (zoom >= 4) return GEO_50;
     return GEO_110;
-  }, [zoom, center]);
+  }, [zoom]);
+
+  // Subdivision overlay URL
+  var subdivisionUrl = useMemo(function () {
+    if (countryFilter === "all") return null;
+
+    // Brazil: states or municipalities
+    if (countryFilter === "BR" || countryFilter === "Brasil" || countryFilter === "Brazil") {
+      if (regionFilter !== "all") {
+        // Try to get IBGE code for the selected region
+        var ibgeCode = BRAZIL_STATE_IBGE[regionFilter];
+        if (ibgeCode) {
+          return "https://servicodados.ibge.gov.br/api/v3/malhas/estados/" + ibgeCode + "?formato=application/vnd.geo+json";
+        }
+      }
+      return BRAZIL_STATES_URL;
+    }
+
+    // Other countries: no specific subdivision URL available
+    return null;
+  }, [countryFilter, regionFilter]);
 
   var hasDevicesInBR = devices.some(function (d) {
     return d.country === "BR";
@@ -226,6 +296,24 @@ const DeviceMap = () => {
               })}
             </SelectContent>
           </Select>
+          {/* Region/State filter — only when a country is selected */}
+          {countryFilter !== "all" && regions.length > 0 && (
+            <Select value={regionFilter} onValueChange={setRegionFilter}>
+              <SelectTrigger className="h-7 w-[160px] text-xs">
+                <SelectValue placeholder="Estado / Região" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os estados</SelectItem>
+                {regions.map(function (r) {
+                  return (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
@@ -280,6 +368,7 @@ const DeviceMap = () => {
           style={{ width: "100%", height: "100%" }}
         >
           <ZoomableGroup center={center} zoom={zoom}>
+            {/* Base world map */}
             <Geographies geography={geoUrl}>
               {function ({ geographies }: { geographies: any[] }) {
                 return geographies.map(function (geo: any) {
@@ -313,6 +402,33 @@ const DeviceMap = () => {
                 });
               }}
             </Geographies>
+
+            {/* Subdivision overlay (states/municipalities) */}
+            {subdivisionUrl && (
+              <Geographies geography={subdivisionUrl}>
+                {function ({ geographies }: { geographies: any[] }) {
+                  return geographies.map(function (geo: any) {
+                    return (
+                      <Geography
+                        key={geo.rsmKey || (geo.properties && geo.properties.name) || Math.random()}
+                        geography={geo}
+                        fill="transparent"
+                        stroke="#334155"
+                        strokeWidth={0.3}
+                        style={{
+                          default: { outline: "none" },
+                          hover: {
+                            fill: "hsla(222, 30%, 25%, 0.3)",
+                            outline: "none",
+                          },
+                          pressed: { outline: "none" },
+                        }}
+                      />
+                    );
+                  });
+                }}
+              </Geographies>
+            )}
 
             {filtered.map(function (device) {
               var online = isOnline(device);
