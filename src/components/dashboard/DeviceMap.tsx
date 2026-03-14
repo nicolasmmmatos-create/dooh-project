@@ -358,9 +358,9 @@ const DeviceMap = () => {
       <div className="relative h-[420px] overflow-hidden rounded-b-xl">
         <style>{`
           @keyframes device-ping {
-            0%   { r: 5;  opacity: 0.8; }
-            70%  { r: 8; opacity: 0.1; }
-            100% { r: 8; opacity: 0;   }
+            0%   { r: 2;  opacity: 0.8; }
+            70%  { r: 5; opacity: 0.1; }
+            100% { r: 5; opacity: 0;   }
           }
         `}</style>
         <ComposableMap
