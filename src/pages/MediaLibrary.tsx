@@ -119,6 +119,25 @@ const MediaLibrary = () => {
     }
   };
 
+  const handleRename = async () => {
+    if (!renameItem || !renamingValue.trim()) return;
+    setRenaming(true);
+    const ext = renameItem.filename.includes(".") ? "." + renameItem.filename.split(".").pop() : "";
+    const newName = renamingValue.trim().replace(/\.[^/.]+$/, "") + ext;
+    const { error } = await supabase
+      .from("videos")
+      .update({ filename: newName })
+      .eq("id", renameItem.id);
+    if (error) {
+      toast({ title: "Erro ao renomear", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Mídia renomeada com sucesso" });
+      setRenameItem(null);
+      fetchMedia();
+    }
+    setRenaming(false);
+  };
+
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
