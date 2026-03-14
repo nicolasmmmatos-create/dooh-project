@@ -37,6 +37,9 @@ const MediaLibrary = () => {
   // Upload dialog state
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [pendingUploadFiles, setPendingUploadFiles] = useState<File[]>([]);
+  const [renameItem, setRenameItem] = useState<MediaItem | null>(null);
+  const [renamingValue, setRenamingValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
   const fetchMedia = async () => {
     setLoading(true);
@@ -116,6 +119,25 @@ const MediaLibrary = () => {
     }
   };
 
+  const handleRename = async () => {
+    if (!renameItem || !renamingValue.trim()) return;
+    setRenaming(true);
+    const ext = renameItem.filename.includes(".") ? "." + renameItem.filename.split(".").pop() : "";
+    const newName = renamingValue.trim().replace(/\.[^/.]+$/, "") + ext;
+    const { error } = await supabase
+      .from("videos")
+      .update({ filename: newName })
+      .eq("id", renameItem.id);
+    if (error) {
+      toast({ title: "Erro ao renomear", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Mídia renomeada com sucesso" });
+      setRenameItem(null);
+      fetchMedia();
+    }
+    setRenaming(false);
+  };
+
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -188,6 +210,21 @@ const MediaLibrary = () => {
               <ListVideo className="w-4 h-4 mr-1" />
               Playlist
             </Button>
+            {selectedIds.size === 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const item = media.find((m) => selectedIds.has(m.id));
+                  if (item) {
+                    setRenameItem(item);
+                    setRenamingValue(item.filename.replace(/\.[^/.]+$/, ""));
+                  }
+                }}
+              >
+                Renomear
+              </Button>
+            )}
             <Button variant="destructive" size="sm" onClick={handleDeleteSelected} disabled={deleting}>
               {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
               Excluir
@@ -268,6 +305,31 @@ const MediaLibrary = () => {
         files={pendingUploadFiles}
         onComplete={fetchMedia}
       />
+
+      <Dialog open={!!renameItem} onOpenChange={(open) => { if (!open) setRenameItem(null); }}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Renomear mídia</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 pt-2">
+            <Input
+              value={renamingValue}
+              onChange={(e) => setRenamingValue(e.target.value)}
+              placeholder="Novo nome..."
+              className="bg-background border-border"
+              onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRenameItem(null)}>Cancelar</Button>
+              <Button onClick={handleRename} disabled={renaming || !renamingValue.trim()}>
+                {renaming ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AddToPlaylistDialog
         open={playlistDialogOpen}
