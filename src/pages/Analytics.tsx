@@ -55,11 +55,21 @@ const Analytics = () => {
       <div className="flex items-center gap-4 mb-6">
         <div>
           <label className="text-xs text-muted-foreground block mb-1">De</label>
-          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-card border-border w-40" />
+          <Input 
+            type="date" 
+            value={startDate} 
+            onChange={(e) => setStartDate(e.target.value)} 
+            className="bg-card border-border w-40 [color-scheme:dark]"
+          />
         </div>
         <div>
           <label className="text-xs text-muted-foreground block mb-1">Até</label>
-          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-card border-border w-40" />
+          <Input 
+            type="date" 
+            value={endDate} 
+            onChange={(e) => setEndDate(e.target.value)} 
+            className="bg-card border-border w-40 [color-scheme:dark]"
+          />
         </div>
       </div>
 
