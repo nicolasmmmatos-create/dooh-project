@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Loader2, GripVertical, Film, Clock, Plus } from "lucide-react";
+import { Trash2, Loader2, GripVertical, Film, Clock, Plus, Eye, EyeOff } from "lucide-react";
 
 interface PlaylistVideo {
   id: string;
@@ -11,6 +11,7 @@ interface PlaylistVideo {
   order_index: number | null;
   duration: number | null;
   page_number: number;
+  is_active: boolean;
   thumbnailUrl?: string;
 }
 
@@ -45,7 +46,7 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
     setLoading(true);
     const { data, error } = await supabase
       .from("videos")
-      .select("id, filename, storage_path, order_index, duration, page_number")
+      .select("id, filename, storage_path, order_index, duration, page_number, is_active")
       .eq("playlist_id", playlistId)
       .order("page_number", { ascending: true })
       .order("order_index", { ascending: true });
@@ -56,12 +57,12 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
       return;
     }
 
-    const withThumbs: PlaylistVideo[] = await Promise.all(
-      (data || []).map(async (v) => {
-        const { data: urlData } = await supabase.storage.from("videos").createSignedUrl(v.storage_path, 3600);
-        return { ...v, page_number: v.page_number || 1, thumbnailUrl: urlData?.signedUrl || "" };
-      })
-    );
+    const withThumbs: PlaylistVideo[] = (data || []).map((v) => ({
+      ...v,
+      page_number: v.page_number || 1,
+      is_active: v.is_active !== false,
+      thumbnailUrl: `https://qbslxssxkxgugwkjnlqu.supabase.co/storage/v1/object/public/videos/${v.storage_path}`,
+    }));
 
     setAllItems(withThumbs);
 
@@ -148,6 +149,24 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
     );
     setSaving(false);
     onChanged?.();
+  };
+
+  const toggleActive = async (id: string, current: boolean) => {
+    setAllItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, is_active: !current } : it))
+    );
+    const { error } = await supabase
+      .from("videos")
+      .update({ is_active: !current })
+      .eq("id", id);
+    if (error) {
+      setAllItems((prev) =>
+        prev.map((it) => (it.id === id ? { ...it, is_active: current } : it))
+      );
+      toast({ title: "Erro ao atualizar mídia", description: error.message, variant: "destructive" });
+    } else {
+      onChanged?.();
+    }
   };
 
   const removeItem = async (id: string) => {
@@ -258,7 +277,7 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
               onDragOver={(e) => e.preventDefault()}
               className={`flex items-center gap-2 p-2 rounded-lg border bg-muted/30 group transition-all ${
                 dragIndex === index ? "border-primary opacity-50" : "border-border"
-              }`}
+              } ${!item.is_active ? "opacity-50" : ""}`}
             >
               <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0 cursor-grab active:cursor-grabbing" />
               <div className="w-10 h-7 rounded overflow-hidden bg-muted shrink-0 flex items-center justify-center">
@@ -278,6 +297,18 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
                 <Clock className="w-3 h-3" />
                 {formatDuration(item.duration || 0)}
               </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                title={item.is_active ? "Desativar mídia" : "Ativar mídia"}
+                onClick={() => toggleActive(item.id, item.is_active)}
+              >
+                {item.is_active
+                  ? <Eye className="w-3.5 h-3.5 text-primary" />
+                  : <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
+                }
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
