@@ -342,17 +342,6 @@ const DeviceMap = () => {
           variant="ghost"
           size="sm"
           className="text-xs h-7 gap-1"
-          onClick={function () {
-            setCenter([-51, -14]);
-            setZoom(4);
-          }}
-        >
-          🇧🇷 Brasil
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs h-7 gap-1"
           onClick={focusOnDevices}
           disabled={filtered.length === 0}
         >
