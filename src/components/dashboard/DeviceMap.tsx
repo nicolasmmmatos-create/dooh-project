@@ -90,7 +90,7 @@ function relativeTime(dateStr: string | null): string {
 
 function getBoundingBox(devs: Device[]): { center: [number, number]; zoom: number } {
   if (devs.length === 0) return { center: [-51, -14], zoom: 3 };
-  if (devs.length === 1) return { center: [devs[0].longitude as number, devs[0].latitude as number], zoom: 10 };
+  if (devs.length === 1) return { center: [devs[0].longitude as number, devs[0].latitude as number], zoom: 60 };
 
   var lats = devs.map(function (d) { return d.latitude as number; });
   var lngs = devs.map(function (d) { return d.longitude as number; });
