@@ -51,12 +51,10 @@ const MediaLibrary = () => {
       return;
     }
 
-    const items: MediaItem[] = await Promise.all(
-      (data || []).map(async (v) => {
-        const { data: urlData } = await supabase.storage.from("videos").createSignedUrl(v.storage_path, 3600);
-        return { ...v, url: urlData?.signedUrl || "" };
-      })
-    );
+    const items: MediaItem[] = (data || []).map((v) => ({
+      ...v,
+      url: `https://qbslxssxkxgugwkjnlqu.supabase.co/storage/v1/object/public/videos/${v.storage_path}`,
+    }));
 
     setMedia(items);
     setLoading(false);
