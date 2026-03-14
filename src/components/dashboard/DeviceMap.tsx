@@ -288,9 +288,16 @@ const DeviceMap = () => {
             <SelectContent>
               <SelectItem value="all">Todos os países</SelectItem>
               {countries.map(function (c) {
+                var countryLabels: Record<string, string> = {
+                  BR: "🇧🇷 Brasil",
+                  US: "🇺🇸 Estados Unidos",
+                  AR: "🇦🇷 Argentina",
+                  PT: "🇵🇹 Portugal",
+                  ES: "🇪🇸 Espanha",
+                };
                 return (
                   <SelectItem key={c} value={c}>
-                    {c}
+                    {countryLabels[c] || c}
                   </SelectItem>
                 );
               })}
@@ -303,7 +310,7 @@ const DeviceMap = () => {
                 <SelectValue placeholder="Estado / Região" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os estados</SelectItem>
+                <SelectItem value="all">Todos os estados / regiões</SelectItem>
                 {regions.map(function (r) {
                   return (
                     <SelectItem key={r} value={r}>
