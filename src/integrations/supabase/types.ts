@@ -422,6 +422,19 @@ export type Database = {
           playlist_id: string
         }[]
       }
+      get_analytics_by_video: {
+        Args: { p_end_date?: string; p_start_date?: string }
+        Returns: {
+          last_played_at: string
+          playlist_id: string
+          playlist_name: string
+          total_duration: number
+          total_plays: number
+          unique_devices: number
+          video_id: string
+          video_name: string
+        }[]
+      }
       get_analytics_summary: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
