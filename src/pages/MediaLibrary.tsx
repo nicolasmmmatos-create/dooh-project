@@ -37,6 +37,9 @@ const MediaLibrary = () => {
   // Upload dialog state
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [pendingUploadFiles, setPendingUploadFiles] = useState<File[]>([]);
+  const [renameItem, setRenameItem] = useState<MediaItem | null>(null);
+  const [renamingValue, setRenamingValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
   const fetchMedia = async () => {
     setLoading(true);
