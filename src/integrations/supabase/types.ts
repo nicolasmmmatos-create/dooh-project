@@ -332,6 +332,7 @@ export type Database = {
           file_size: number | null
           filename: string
           id: string
+          is_active: boolean
           mime_type: string | null
           order_index: number | null
           page_number: number
@@ -347,6 +348,7 @@ export type Database = {
           file_size?: number | null
           filename: string
           id?: string
+          is_active?: boolean
           mime_type?: string | null
           order_index?: number | null
           page_number?: number
@@ -362,6 +364,7 @@ export type Database = {
           file_size?: number | null
           filename?: string
           id?: string
+          is_active?: boolean
           mime_type?: string | null
           order_index?: number | null
           page_number?: number
@@ -531,6 +534,7 @@ export type Database = {
         Args: { p_plan: string; p_user_id: string }
         Returns: undefined
       }
+      toggle_video_active: { Args: { p_video_id: string }; Returns: boolean }
       update_device_info: {
         Args: {
           p_address?: string

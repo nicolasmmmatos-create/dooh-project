@@ -353,12 +353,7 @@ const Playlists = () => {
                   });
                 }}
               />
-              <VideoUpload playlistId={selectedPlaylist.id} onUploadComplete={() => {
-                fetchPlaylists();
-                supabase.from("videos").select("id").eq("playlist_id", selectedPlaylist.id).then(({ data }) => {
-                  setEditPlaylistVideoIds((data || []).map((v) => v.id));
-                });
-              }} />
+              {/* Upload removido — use a Biblioteca para adicionar mídias */}
             </div>
           )}
           <DialogFooter>
