@@ -61,25 +61,57 @@ const Player = () => {
     return order;
   };
 
-  const fetchPlaylist = useCallback(async () => {
-    const { data, error: rpcErr } = await supabase.rpc("get_playlist_by_token", { p_token: token! });
-    if (rpcErr || !data || (data as any).error) throw new Error("Token inválido ou expirado");
+ const fetchPlaylist = useCallback(async () => {
+  const { data: tokenRows, error: tokenErr } = await (supabase.rpc as any)("validate_token", { p_token: token! });
+  if (tokenErr || !tokenRows || (tokenRows as any[]).length === 0) throw new Error("Token inválido ou expirado");
 
-    const row = data as any;
-    setPlaylistName(row.playlist_name);
+  const row = tokenRows[0] as any;
+  setPlaylistName(row.playlist_name);
+  setPlaylistId(row.playlist_id);
 
-    const videoUrls: string[] = row.video_urls || [];
-    const videoIds: string[]   = row.video_ids || [];
-    const videoPages: number[] = row.video_pages || [];
-    const videoDurations: number[] = row.video_durations || [];
+  const videoUrls: string[] = row.video_urls || [];
+  const videoPages: number[] = row.video_pages || [];
 
-    const videos: VideoItem[] = videoUrls.map((storagePath: string, i: number) => ({
-      id: videoIds[i] || String(i),
-      url: `${PROJECT_URL}/storage/v1/object/public/videos/${storagePath}`,
-      filename: storagePath.split("/").pop() || "",
-      duration: videoDurations[i] || 0,
-      page: videoPages[i] || 1,
-    }));
+  const videos: VideoItem[] = videoUrls.map((storagePath: string, i: number) => ({
+    id: String(i),
+    url: `https://qbslxssxkxgugwkjnlqu.supabase.co/storage/v1/object/public/videos/${storagePath}`,
+    filename: storagePath.split("/").pop() || "",
+    page: videoPages[i] || 1,
+  }));
+
+  setPlaylist(videos);
+
+  const pageMap = new Map<number, number[]>();
+  videos.forEach((v, i) => {
+    const arr = pageMap.get(v.page) || [];
+    arr.push(i);
+    pageMap.set(v.page, arr);
+  });
+
+  const sortedPages = [...pageMap.keys()].sort();
+  if (sortedPages.length <= 1) {
+    setInterleavedOrder(videos.map((_, i) => i));
+  } else {
+    const order: number[] = [];
+    const iterators = sortedPages.map((p) => ({ indices: pageMap.get(p)!, pos: 0 }));
+    let hasMore = true;
+    while (hasMore) {
+      hasMore = false;
+      for (const it of iterators) {
+        if (it.pos < it.indices.length) {
+          order.push(it.indices[it.pos]);
+          it.pos++;
+          if (it.pos < it.indices.length) hasMore = true;
+        }
+      }
+      if (!hasMore) hasMore = iterators.some((it) => it.pos < it.indices.length);
+    }
+    setInterleavedOrder(order);
+  }
+
+  console.log("Playlist:", row.playlist_name, "-", videos.length, "vídeos");
+  return videos;
+}, [token]);
 
     const order = buildOrder(videos);
     setPlaylist(videos);
