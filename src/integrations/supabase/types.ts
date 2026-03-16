@@ -583,6 +583,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_upload_error: {
+        Args: { p_error_message: string; p_filename: string; p_stage?: string }
+        Returns: undefined
+      }
       process_schedules: { Args: never; Returns: undefined }
       record_analytics: {
         Args: { p_device_id: string; p_duration?: number; p_video_id: string }
