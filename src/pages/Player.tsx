@@ -221,12 +221,12 @@ const Player = () => {
       .finally(() => setLoading(false));
   }, [token, fetchPlaylist]);
 
-  // Polling for playlist updates every 30s
+  // Polling leve a cada 15s — só recarrega se updated_at mudou
   useEffect(() => {
     if (!token || !playlist.length) return;
     const interval = setInterval(() => {
-      fetchPlaylist().catch(() => {});
-    }, 30_000);
+      fetchPlaylist(false).catch(() => {});
+    }, 15_000);
     return () => clearInterval(interval);
   }, [token, playlist.length, fetchPlaylist]);
 
