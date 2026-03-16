@@ -459,6 +459,10 @@ export type Database = {
             }
             Returns: Json
           }
+      force_playlist_refresh: {
+        Args: { p_playlist_id: string }
+        Returns: undefined
+      }
       get_active_screens: { Args: { p_playlist_id: string }; Returns: number }
       get_all_active_screens: {
         Args: never
@@ -606,6 +610,15 @@ export type Database = {
           p_name?: string
         }
         Returns: Json
+      }
+      validate_token: {
+        Args: { p_token: string }
+        Returns: {
+          playlist_id: string
+          playlist_name: string
+          video_pages: number[]
+          video_urls: string[]
+        }[]
       }
     }
     Enums: {
