@@ -72,12 +72,12 @@ const Player = () => {
   const videoUrls: string[] = row.video_urls || [];
   const videoPages: number[] = row.video_pages || [];
 
-  const videos: VideoItem[] = videoUrls.map((storagePath: string, i: number) => ({
-    id: String(i),
-    url: `https://qbslxssxkxgugwkjnlqu.supabase.co/storage/v1/object/public/videos/${storagePath}`,
-    filename: storagePath.split("/").pop() || "",
-    page: videoPages[i] || 1,
-  }));
+const videos: VideoItem[] = videoUrls.map((storagePath: string, i: number) => ({
+      id: String(i),
+      url: `https://qbslxssxkxgugwkjnlqu.supabase.co/storage/v1/object/public/videos/${storagePath}`,
+      filename: storagePath.split("/").pop() || "",
+      page: videoPages[i] || 1,
+    }));
 
   setPlaylist(videos);
 
