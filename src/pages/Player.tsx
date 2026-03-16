@@ -36,17 +36,42 @@ const Player = () => {
   const videoStartTimeRef = useRef(Date.now());
   const deviceIdRef = useRef("");
 
+  const buildOrder = (videos: VideoItem[]) => {
+    const pageMap = new Map<number, number[]>();
+    videos.forEach((v, i) => {
+      const arr = pageMap.get(v.page) || [];
+      arr.push(i);
+      pageMap.set(v.page, arr);
+    });
+    const sortedPages = [...pageMap.keys()].sort();
+    if (sortedPages.length <= 1) return videos.map((_, i) => i);
+    const order: number[] = [];
+    const iterators = sortedPages.map((p) => ({ indices: pageMap.get(p)!, pos: 0 }));
+    let hasMore = true;
+    while (hasMore) {
+      hasMore = false;
+      for (const it of iterators) {
+        if (it.pos < it.indices.length) {
+          order.push(it.indices[it.pos++]);
+          if (it.pos < it.indices.length) hasMore = true;
+        }
+      }
+      if (!hasMore) hasMore = iterators.some((it) => it.pos < it.indices.length);
+    }
+    return order;
+  };
+
   const fetchPlaylist = useCallback(async () => {
-    const { data: row, error: tokenErr } = await supabase.rpc("get_playlist_by_token", { p_token: token! });
-    if (tokenErr || !row || (row as any).error) throw new Error("Token inválido ou expirado");
+    const { data, error: rpcErr } = await supabase.rpc("get_playlist_by_token", { p_token: token! });
+    if (rpcErr || !data || (data as any).error) throw new Error("Token inválido ou expirado");
 
-    const data = row as any;
-    setPlaylistName(data.playlist_name);
+    const row = data as any;
+    setPlaylistName(row.playlist_name);
 
-    const videoUrls: string[] = data.video_urls || [];
-    const videoIds: string[] = data.video_ids || [];
-    const videoPages: number[] = data.video_pages || [];
-    const videoDurations: number[] = data.video_durations || [];
+    const videoUrls: string[] = row.video_urls || [];
+    const videoIds: string[]   = row.video_ids || [];
+    const videoPages: number[] = row.video_pages || [];
+    const videoDurations: number[] = row.video_durations || [];
 
     const videos: VideoItem[] = videoUrls.map((storagePath: string, i: number) => ({
       id: videoIds[i] || String(i),
@@ -56,57 +81,28 @@ const Player = () => {
       page: videoPages[i] || 1,
     }));
 
+    const order = buildOrder(videos);
     setPlaylist(videos);
-    playlistRef.current = videos;
-
-    // Build interleaved order
-    const pageMap = new Map<number, number[]>();
-    videos.forEach((v, i) => {
-      const arr = pageMap.get(v.page) || [];
-      arr.push(i);
-      pageMap.set(v.page, arr);
-    });
-    const sortedPages = [...pageMap.keys()].sort();
-    let order: number[];
-    if (sortedPages.length <= 1) {
-      order = videos.map((_, i) => i);
-    } else {
-      order = [];
-      const iterators = sortedPages.map((p) => ({ indices: pageMap.get(p)!, pos: 0 }));
-      let hasMore = true;
-      while (hasMore) {
-        hasMore = false;
-        for (const it of iterators) {
-          if (it.pos < it.indices.length) {
-            order.push(it.indices[it.pos]);
-            it.pos++;
-            if (it.pos < it.indices.length) hasMore = true;
-          }
-        }
-        if (!hasMore) hasMore = iterators.some((it) => it.pos < it.indices.length);
-      }
-    }
     setInterleavedOrder(order);
+    playlistRef.current = videos;
     interleavedOrderRef.current = order;
     return videos;
   }, [token]);
 
-  const getVideoByOrder = useCallback((orderIdx: number): VideoItem | undefined => {
+  const getVideoByOrder = useCallback((idx: number): VideoItem | undefined => {
     const pl = playlistRef.current;
     const order = interleavedOrderRef.current;
     if (!order.length || !pl.length) return pl[0];
-    return pl[order[orderIdx % order.length]];
+    return pl[order[idx % order.length]];
   }, []);
 
   const preloadInactive = useCallback((nextIdx: number) => {
-    const inactiveRef = activeSlotRef.current === "A" ? videoBRef : videoARef;
-    const vid = inactiveRef.current;
+    const vid = (activeSlotRef.current === "A" ? videoBRef : videoARef).current;
     if (!vid) return;
-    const nextVideo = getVideoByOrder(nextIdx);
-    if (!nextVideo) return;
-    if (vid.getAttribute("data-src") !== nextVideo.url) {
-      vid.setAttribute("data-src", nextVideo.url);
-      vid.src = nextVideo.url;
+    const next = getVideoByOrder(nextIdx);
+    if (next && vid.getAttribute("data-preload") !== next.url) {
+      vid.setAttribute("data-preload", next.url);
+      vid.src = next.url;
       vid.preload = "auto";
       vid.load();
     }
@@ -125,50 +121,35 @@ const Player = () => {
   const handleVideoEnd = useCallback(() => {
     if (transitioningRef.current) return;
     transitioningRef.current = true;
-
     const order = interleavedOrderRef.current;
     if (!order.length) { transitioningRef.current = false; return; }
 
-    // Record analytics for current video
     recordAnalytics(getVideoByOrder(currentIndexRef.current));
 
     const nextIdx = (currentIndexRef.current + 1) % order.length;
     const isA = activeSlotRef.current === "A";
-    const inactiveRef = isA ? videoBRef : videoARef;
-    const activeRef   = isA ? videoARef : videoBRef;
-    const inactiveVid = inactiveRef.current;
-    const activeVid   = activeRef.current;
-
+    const inactiveVid = (isA ? videoBRef : videoARef).current;
+    const activeVid   = (isA ? videoARef : videoBRef).current;
     if (!inactiveVid) { transitioningRef.current = false; return; }
 
-    // Ensure next video is loaded in inactive slot
     const nextVideo = getVideoByOrder(nextIdx);
-    if (nextVideo && inactiveVid.getAttribute("data-src") !== nextVideo.url) {
+    if (nextVideo && inactiveVid.getAttribute("data-preload") !== nextVideo.url) {
       inactiveVid.src = nextVideo.url;
-      inactiveVid.setAttribute("data-src", nextVideo.url);
+      inactiveVid.setAttribute("data-preload", nextVideo.url);
       inactiveVid.load();
     }
 
     inactiveVid.currentTime = 0;
     videoStartTimeRef.current = Date.now();
 
-    // webOS 4.x safe play: try immediately, retry after crossfade if blocked
-    const playPromise = inactiveVid.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        setTimeout(() => {
-          inactiveVid.play().catch(() => {});
-        }, CROSSFADE_MS + 100);
-      });
+    const p = inactiveVid.play();
+    if (p !== undefined) {
+      p.catch(() => setTimeout(() => inactiveVid.play().catch(() => {}), CROSSFADE_MS + 100));
     }
 
-    // Crossfade via style (refs, não React state — evita re-render durante transição)
     inactiveVid.style.opacity = "1";
-    inactiveVid.style.zIndex = "2";
-    if (activeVid) {
-      activeVid.style.opacity = "0";
-      activeVid.style.zIndex = "1";
-    }
+    inactiveVid.style.zIndex  = "2";
+    if (activeVid) { activeVid.style.opacity = "0"; activeVid.style.zIndex = "1"; }
 
     setTimeout(() => {
       const newSlot = isA ? "B" : "A";
@@ -177,13 +158,11 @@ const Player = () => {
       currentIndexRef.current = nextIdx;
       setCurrentIndex(nextIdx);
       transitioningRef.current = false;
-
-      // Preload the video after next
       preloadInactive((nextIdx + 1) % order.length);
     }, CROSSFADE_MS);
   }, [getVideoByOrder, preloadInactive, recordAnalytics]);
 
-  // Initial load
+  // Carregamento inicial
   useEffect(() => {
     if (!token) return;
     setLoading(true);
@@ -194,16 +173,16 @@ const Player = () => {
         const vidB = videoBRef.current;
         if (vidA && videos[0]) {
           vidA.src = videos[0].url;
-          vidA.setAttribute("data-src", videos[0].url);
+          vidA.setAttribute("data-preload", videos[0].url);
           vidA.style.opacity = "1";
-          vidA.style.zIndex = "2";
+          vidA.style.zIndex  = "2";
           vidA.load();
         }
         if (vidB && videos[1]) {
           vidB.src = videos[1].url;
-          vidB.setAttribute("data-src", videos[1].url);
+          vidB.setAttribute("data-preload", videos[1].url);
           vidB.style.opacity = "0";
-          vidB.style.zIndex = "1";
+          vidB.style.zIndex  = "1";
           vidB.preload = "auto";
           vidB.load();
         }
@@ -216,10 +195,8 @@ const Player = () => {
   // Polling a cada 15s
   useEffect(() => {
     if (!token || !playlist.length) return;
-    const interval = setInterval(() => {
-      fetchPlaylist().catch(() => {});
-    }, 15_000);
-    return () => clearInterval(interval);
+    const iv = setInterval(() => fetchPlaylist().catch(() => {}), 15_000);
+    return () => clearInterval(iv);
   }, [token, playlist.length, fetchPlaylist]);
 
   // Autoplay
@@ -229,9 +206,7 @@ const Player = () => {
     if (!vid) return;
     const tryPlay = () => {
       const p = vid.play();
-      if (p !== undefined) {
-        p.then(() => enterFullscreen()).catch(() => setNeedsTap(true));
-      }
+      if (p !== undefined) p.then(() => enterFullscreen()).catch(() => setNeedsTap(true));
     };
     if (vid.readyState >= 3) { tryPlay(); return; }
     vid.addEventListener("canplay", tryPlay, { once: true });
@@ -240,42 +215,31 @@ const Player = () => {
   const enterFullscreen = useCallback(async () => {
     const el = containerRef.current;
     if (!el) return;
-    try {
-      if (!document.fullscreenElement && el.requestFullscreen) {
-        await el.requestFullscreen();
-      }
-    } catch {}
+    try { if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen(); } catch {}
   }, []);
 
   // Wake lock
   useEffect(() => {
-    let wakeLock: any = null;
-    const request = async () => {
-      try {
-        if ("wakeLock" in navigator) wakeLock = await (navigator as any).wakeLock.request("screen");
-      } catch {}
+    let wl: any = null;
+    const req = async () => {
+      try { if ("wakeLock" in navigator) wl = await (navigator as any).wakeLock.request("screen"); } catch {}
     };
-    request();
-    const onVisibility = () => { if (document.visibilityState === "visible") request(); };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      wakeLock?.release().catch(() => {});
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
+    req();
+    const onVis = () => { if (document.visibilityState === "visible") req(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { wl?.release().catch(() => {}); document.removeEventListener("visibilitychange", onVis); };
   }, []);
 
   // Heartbeat
   useEffect(() => {
     if (!token) return;
-    const fingerprint = getDeviceFingerprint();
-    const sendHeartbeat = () => {
-      deviceHeartbeat(token, fingerprint, navigator.userAgent)
-        .then((result: any) => { if (result?.device_id) deviceIdRef.current = result.device_id; })
-        .catch(() => {});
-    };
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 60_000);
-    return () => clearInterval(interval);
+    const fp = getDeviceFingerprint();
+    const hb = () => deviceHeartbeat(token, fp, navigator.userAgent)
+      .then((r: any) => { if (r?.device_id) deviceIdRef.current = r.device_id; })
+      .catch(() => {});
+    hb();
+    const iv = setInterval(hb, 60_000);
+    return () => clearInterval(iv);
   }, [token]);
 
   const handleTapToStart = async () => {
