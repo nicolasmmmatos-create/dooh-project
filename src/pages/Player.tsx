@@ -7,10 +7,12 @@ interface VideoItem {
   id: string;
   url: string;
   filename: string;
+  duration: number;
   page: number;
 }
 
-const CROSSFADE_MS = 800;
+const CROSSFADE_MS = 600;
+const PROJECT_URL = "https://qbslxssxkxgugwkjnlqu.supabase.co";
 
 const Player = () => {
   const { token } = useParams<{ token: string }>();
@@ -18,19 +20,21 @@ const Player = () => {
   const [interleavedOrder, setInterleavedOrder] = useState<number[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playlistName, setPlaylistName] = useState("");
-  const [playlistId, setPlaylistId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const deviceIdRef = useRef<string>("");
+  const [needsTap, setNeedsTap] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<"A" | "B">("A");
 
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
-  const [activeSlot, setActiveSlot] = useState<"A" | "B">("A");
-  const [opacityA, setOpacityA] = useState(1);
-  const [opacityB, setOpacityB] = useState(0);
+  const activeSlotRef = useRef<"A" | "B">("A");
+  const currentIndexRef = useRef(0);
+  const interleavedOrderRef = useRef<number[]>([]);
+  const playlistRef = useRef<VideoItem[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-  const nextIndexRef = useRef(0);
-  const [needsTap, setNeedsTap] = useState(false);
+  const transitioningRef = useRef(false);
+  const videoStartTimeRef = useRef(Date.now());
+  const deviceIdRef = useRef("");
 
   const fetchPlaylist = useCallback(async () => {
     const { data: tokenRows, error: tokenErr } = await (supabase.rpc as any)("validate_token", { p_token: token! });
@@ -38,44 +42,36 @@ const Player = () => {
 
     const row = tokenRows[0] as any;
     setPlaylistName(row.playlist_name);
-    setPlaylistId(row.playlist_id);
 
     const videoUrls: string[] = row.video_urls || [];
     const videoPages: number[] = row.video_pages || [];
+    const videoDurations: number[] = row.video_durations || [];
 
-    const videos: VideoItem[] = [];
-    for (let i = 0; i < videoUrls.length; i++) {
-      const storagePath = videoUrls[i];
-      const { data: signedData } = await supabase.storage
-        .from("videos")
-        .createSignedUrl(storagePath, 3600);
-      if (signedData?.signedUrl) {
-        videos.push({
-          id: String(i),
-          url: signedData.signedUrl,
-          filename: storagePath.split("/").pop() || "",
-          page: videoPages[i] || 1,
-        });
-      }
-    }
+    // URL pública direta — sem createSignedUrl, compatível com webOS 4.x
+    const videos: VideoItem[] = videoUrls.map((storagePath, i) => ({
+      id: String(i),
+      url: `${PROJECT_URL}/storage/v1/object/public/videos/${storagePath}`,
+      filename: storagePath.split("/").pop() || "",
+      duration: videoDurations[i] || 0,
+      page: videoPages[i] || 1,
+    }));
 
     setPlaylist(videos);
+    playlistRef.current = videos;
 
-    // Build interleaved order: Page1[0], Page2[0], Page1[1], Page2[1], ...
+    // Build interleaved order
     const pageMap = new Map<number, number[]>();
     videos.forEach((v, i) => {
       const arr = pageMap.get(v.page) || [];
       arr.push(i);
       pageMap.set(v.page, arr);
     });
-
     const sortedPages = [...pageMap.keys()].sort();
+    let order: number[];
     if (sortedPages.length <= 1) {
-      // Single page, play sequentially
-      setInterleavedOrder(videos.map((_, i) => i));
+      order = videos.map((_, i) => i);
     } else {
-      // Interleave: cycle through pages round-robin
-      const order: number[] = [];
+      order = [];
       const iterators = sortedPages.map((p) => ({ indices: pageMap.get(p)!, pos: 0 }));
       let hasMore = true;
       while (hasMore) {
@@ -87,83 +83,159 @@ const Player = () => {
             if (it.pos < it.indices.length) hasMore = true;
           }
         }
-        // Check if any iterator still has items
-        if (!hasMore) {
-          hasMore = iterators.some((it) => it.pos < it.indices.length);
-        }
+        if (!hasMore) hasMore = iterators.some((it) => it.pos < it.indices.length);
       }
-      setInterleavedOrder(order);
     }
-
-    console.log("Playlist:", row.playlist_name, "-", videos.length, "vídeos,", sortedPages.length, "página(s)");
+    setInterleavedOrder(order);
+    interleavedOrderRef.current = order;
     return videos;
   }, [token]);
 
+  const getVideoByOrder = useCallback((orderIdx: number): VideoItem | undefined => {
+    const pl = playlistRef.current;
+    const order = interleavedOrderRef.current;
+    if (!order.length || !pl.length) return pl[0];
+    return pl[order[orderIdx % order.length]];
+  }, []);
+
+  const preloadInactive = useCallback((nextIdx: number) => {
+    const inactiveRef = activeSlotRef.current === "A" ? videoBRef : videoARef;
+    const vid = inactiveRef.current;
+    if (!vid) return;
+    const nextVideo = getVideoByOrder(nextIdx);
+    if (!nextVideo) return;
+    if (vid.getAttribute("data-src") !== nextVideo.url) {
+      vid.setAttribute("data-src", nextVideo.url);
+      vid.src = nextVideo.url;
+      vid.preload = "auto";
+      vid.load();
+    }
+  }, [getVideoByOrder]);
+
+  const recordAnalytics = useCallback((video: VideoItem | undefined) => {
+    if (!video || !deviceIdRef.current) return;
+    const watched = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
+    supabase.rpc("record_analytics", {
+      p_device_id: deviceIdRef.current,
+      p_video_id: video.id,
+      p_duration: watched,
+    }).catch(() => {});
+  }, []);
+
+  const handleVideoEnd = useCallback(() => {
+    if (transitioningRef.current) return;
+    transitioningRef.current = true;
+
+    const order = interleavedOrderRef.current;
+    if (!order.length) { transitioningRef.current = false; return; }
+
+    // Record analytics for current video
+    recordAnalytics(getVideoByOrder(currentIndexRef.current));
+
+    const nextIdx = (currentIndexRef.current + 1) % order.length;
+    const isA = activeSlotRef.current === "A";
+    const inactiveRef = isA ? videoBRef : videoARef;
+    const activeRef   = isA ? videoARef : videoBRef;
+    const inactiveVid = inactiveRef.current;
+    const activeVid   = activeRef.current;
+
+    if (!inactiveVid) { transitioningRef.current = false; return; }
+
+    // Ensure next video is loaded in inactive slot
+    const nextVideo = getVideoByOrder(nextIdx);
+    if (nextVideo && inactiveVid.getAttribute("data-src") !== nextVideo.url) {
+      inactiveVid.src = nextVideo.url;
+      inactiveVid.setAttribute("data-src", nextVideo.url);
+      inactiveVid.load();
+    }
+
+    inactiveVid.currentTime = 0;
+    videoStartTimeRef.current = Date.now();
+
+    // webOS 4.x safe play: try immediately, retry after crossfade if blocked
+    const playPromise = inactiveVid.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        setTimeout(() => {
+          inactiveVid.play().catch(() => {});
+        }, CROSSFADE_MS + 100);
+      });
+    }
+
+    // Crossfade via style (refs, não React state — evita re-render durante transição)
+    inactiveVid.style.opacity = "1";
+    inactiveVid.style.zIndex = "2";
+    if (activeVid) {
+      activeVid.style.opacity = "0";
+      activeVid.style.zIndex = "1";
+    }
+
+    setTimeout(() => {
+      const newSlot = isA ? "B" : "A";
+      activeSlotRef.current = newSlot;
+      setActiveSlot(newSlot);
+      currentIndexRef.current = nextIdx;
+      setCurrentIndex(nextIdx);
+      transitioningRef.current = false;
+
+      // Preload the video after next
+      preloadInactive((nextIdx + 1) % order.length);
+    }, CROSSFADE_MS);
+  }, [getVideoByOrder, preloadInactive, recordAnalytics]);
+
+  // Initial load
   useEffect(() => {
     if (!token) return;
     setLoading(true);
     fetchPlaylist()
+      .then((videos) => {
+        if (!videos.length) return;
+        const vidA = videoARef.current;
+        const vidB = videoBRef.current;
+        if (vidA && videos[0]) {
+          vidA.src = videos[0].url;
+          vidA.setAttribute("data-src", videos[0].url);
+          vidA.style.opacity = "1";
+          vidA.style.zIndex = "2";
+          vidA.load();
+        }
+        if (vidB && videos[1]) {
+          vidB.src = videos[1].url;
+          vidB.setAttribute("data-src", videos[1].url);
+          vidB.style.opacity = "0";
+          vidB.style.zIndex = "1";
+          vidB.preload = "auto";
+          vidB.load();
+        }
+        videoStartTimeRef.current = Date.now();
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [token, fetchPlaylist]);
 
+  // Polling for playlist updates every 30s
   useEffect(() => {
-    if (!token || playlist.length === 0) return;
+    if (!token || !playlist.length) return;
     const interval = setInterval(() => {
       fetchPlaylist().catch(() => {});
-    }, 50 * 60 * 1000);
+    }, 30_000);
     return () => clearInterval(interval);
   }, [token, playlist.length, fetchPlaylist]);
 
-  const getVideoByOrder = (orderIdx: number) => {
-    if (interleavedOrder.length === 0) return playlist[0];
-    const videoIdx = interleavedOrder[orderIdx % interleavedOrder.length];
-    return playlist[videoIdx];
-  };
-
-  const preloadNext = useCallback((nextIdx: number) => {
-    const inactiveRef = activeSlot === "A" ? videoBRef : videoARef;
-    const vid = inactiveRef.current;
-    if (!vid || interleavedOrder.length === 0) return;
-    const nextVideo = getVideoByOrder(nextIdx);
-    if (nextVideo && vid.src !== nextVideo.url) {
-      vid.src = nextVideo.url;
-      vid.load();
-    }
-  }, [activeSlot, interleavedOrder, playlist]);
-
+  // Autoplay
   useEffect(() => {
-    if (interleavedOrder.length <= 1) return;
-    const next = (currentIndex + 1) % interleavedOrder.length;
-    nextIndexRef.current = next;
-    preloadNext(next);
-  }, [currentIndex, interleavedOrder, preloadNext]);
-
-  const handleVideoEnd = useCallback(() => {
-    if (interleavedOrder.length === 0) return;
-    const nextIdx = (currentIndex + 1) % interleavedOrder.length;
-    nextIndexRef.current = nextIdx;
-    const inactiveRef = activeSlot === "A" ? videoBRef : videoARef;
-    const vid = inactiveRef.current;
-
-    if (activeSlot === "A") {
-      setOpacityB(1);
-      vid?.play().catch(() => {});
-      setTimeout(() => {
-        setOpacityA(0);
-        setActiveSlot("B");
-        setCurrentIndex(nextIdx);
-      }, CROSSFADE_MS);
-    } else {
-      setOpacityA(1);
-      vid?.play().catch(() => {});
-      setTimeout(() => {
-        setOpacityB(0);
-        setActiveSlot("A");
-        setCurrentIndex(nextIdx);
-      }, CROSSFADE_MS);
-    }
-  }, [activeSlot, interleavedOrder, currentIndex]);
+    if (loading || !playlist.length) return;
+    const vid = videoARef.current;
+    if (!vid) return;
+    const tryPlay = () => {
+      const p = vid.play();
+      if (p !== undefined) {
+        p.then(() => enterFullscreen()).catch(() => setNeedsTap(true));
+      }
+    };
+    if (vid.readyState >= 3) { tryPlay(); return; }
+    vid.addEventListener("canplay", tryPlay, { once: true });
+  }, [loading, playlist.length]);
 
   const enterFullscreen = useCallback(async () => {
     const el = containerRef.current;
@@ -175,133 +247,86 @@ const Player = () => {
     } catch {}
   }, []);
 
+  // Wake lock
   useEffect(() => {
-    const vid = activeSlot === "A" ? videoARef.current : videoBRef.current;
-    if (!vid || playlist.length === 0) return;
-
-    const tryPlay = async () => {
+    let wakeLock: any = null;
+    const request = async () => {
       try {
-        await vid.play();
-        // If autoplay worked, try fullscreen silently (may fail without gesture)
-        enterFullscreen();
-      } catch {
-        // Autoplay blocked — show tap overlay
-        setNeedsTap(true);
-      }
+        if ("wakeLock" in navigator) wakeLock = await (navigator as any).wakeLock.request("screen");
+      } catch {}
     };
+    request();
+    const onVisibility = () => { if (document.visibilityState === "visible") request(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      wakeLock?.release().catch(() => {});
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
-    vid.addEventListener("canplay", () => tryPlay(), { once: true });
-    tryPlay();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playlist.length > 0]);
+  // Heartbeat
+  useEffect(() => {
+    if (!token) return;
+    const fingerprint = getDeviceFingerprint();
+    const sendHeartbeat = () => {
+      deviceHeartbeat(token, fingerprint, navigator.userAgent)
+        .then((result: any) => { if (result?.device_id) deviceIdRef.current = result.device_id; })
+        .catch(() => {});
+    };
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 60_000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   const handleTapToStart = async () => {
     setNeedsTap(false);
     await enterFullscreen();
-    const vid = activeSlot === "A" ? videoARef.current : videoBRef.current;
-    if (vid) {
-      vid.muted = true;
-      vid.play().catch(() => {});
-    }
+    const vid = videoARef.current;
+    if (vid) { vid.muted = true; vid.play().catch(() => {}); }
   };
 
-  useEffect(() => {
-    let wakeLock: WakeLockSentinel | null = null;
-    const requestWakeLock = async () => {
-      try {
-        if ("wakeLock" in navigator) {
-          wakeLock = await (navigator as any).wakeLock.request("screen");
-        }
-      } catch {}
-    };
-    requestWakeLock();
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") requestWakeLock();
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      wakeLock?.release().catch(() => {});
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
+  if (loading) return (
+    <div className="fixed inset-0 bg-black flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
-  // Device registration & heartbeat via secure RPC
-  useEffect(() => {
-    if (!token) return;
-
-    const fingerprint = getDeviceFingerprint();
-
-    const sendHeartbeat = () => {
-      deviceHeartbeat(token, fingerprint, navigator.userAgent).catch(() => {});
-    };
-
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 60_000);
-
-    return () => clearInterval(interval);
-  }, [token]);
-
-  const currentVideo = getVideoByOrder(currentIndex);
-
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+  if (error) return (
+    <div className="fixed inset-0 bg-black flex items-center justify-center text-white text-center">
+      <div>
+        <p className="text-xl font-bold mb-2">Erro</p>
+        <p className="text-white/60">{error}</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center text-white text-center">
-        <div>
-          <p className="text-xl font-bold mb-2">Erro</p>
-          <p className="text-white/60">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (playlist.length === 0) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center text-white text-center">
-        <p className="text-white/60">Nenhum vídeo na playlist "{playlistName}"</p>
-      </div>
-    );
-  }
+  if (!playlist.length) return (
+    <div className="fixed inset-0 bg-black flex items-center justify-center text-white text-center">
+      <p className="text-white/60">Nenhum vídeo na playlist "{playlistName}"</p>
+    </div>
+  );
 
   return (
     <div ref={containerRef} className="fixed inset-0 bg-black">
       <video
         ref={videoARef}
-        src={activeSlot === "A" ? currentVideo?.url : undefined}
         className="absolute inset-0 w-full h-full object-contain"
-        style={{
-          opacity: opacityA,
-          transition: `opacity ${CROSSFADE_MS}ms ease-in-out`,
-          zIndex: activeSlot === "A" ? 2 : 1,
-        }}
+        style={{ opacity: 1, transition: `opacity ${CROSSFADE_MS}ms ease-in-out`, zIndex: 2 }}
         autoPlay
         muted
         playsInline
-        onEnded={activeSlot === "A" ? handleVideoEnd : undefined}
-        onError={activeSlot === "A" ? () => handleVideoEnd() : undefined}
+        onEnded={activeSlotRef.current === "A" ? () => handleVideoEnd() : undefined}
+        onError={activeSlotRef.current === "A" ? () => handleVideoEnd() : undefined}
       />
       <video
         ref={videoBRef}
-        src={activeSlot === "B" ? currentVideo?.url : undefined}
         className="absolute inset-0 w-full h-full object-contain"
-        style={{
-          opacity: opacityB,
-          transition: `opacity ${CROSSFADE_MS}ms ease-in-out`,
-          zIndex: activeSlot === "B" ? 2 : 1,
-        }}
+        style={{ opacity: 0, transition: `opacity ${CROSSFADE_MS}ms ease-in-out`, zIndex: 1 }}
         autoPlay
         muted
         playsInline
-        onEnded={activeSlot === "B" ? handleVideoEnd : undefined}
-        onError={activeSlot === "B" ? () => handleVideoEnd() : undefined}
+        onEnded={activeSlotRef.current === "B" ? () => handleVideoEnd() : undefined}
+        onError={activeSlotRef.current === "B" ? () => handleVideoEnd() : undefined}
       />
       {needsTap && (
         <div
