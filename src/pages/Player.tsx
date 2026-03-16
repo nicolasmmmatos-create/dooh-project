@@ -115,7 +115,7 @@ const Player = () => {
   const recordAnalytics = useCallback((video: VideoItem | undefined) => {
     if (!video || !deviceIdRef.current) return;
     const watched = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
-    supabase.rpc("record_analytics", {
+    (supabase.rpc as any)("record_analytics", {
       p_device_id: deviceIdRef.current,
       p_video_id: video.id,
       p_duration: watched,
