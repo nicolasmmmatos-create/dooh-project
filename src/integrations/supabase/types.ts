@@ -611,6 +611,15 @@ export type Database = {
         }
         Returns: Json
       }
+      validate_token: {
+        Args: { p_token: string }
+        Returns: {
+          playlist_id: string
+          playlist_name: string
+          video_pages: number[]
+          video_urls: string[]
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
