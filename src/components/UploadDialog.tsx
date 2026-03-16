@@ -201,34 +201,34 @@ const UploadDialog = ({ open, onOpenChange, files, onComplete }: UploadDialogPro
         if (uploadError) {
           updateEntry(i, { status: "error" });
           toast({ title: `Erro ao enviar "${entry.name}"`, description: uploadError.message, variant: "destructive" });
+          await supabase.rpc("log_upload_error", {
+            p_filename: entry.name,
+            p_error_message: uploadError.message,
+            p_stage: "upload",
+          });
           continue;
         }
 
         updateEntry(i, { uploadProgress: 80 });
 
-        // Calculate next order_index
-        const { data: lastVideo } = await supabase
-          .from("videos")
-          .select("order_index")
-          .eq("user_id", userId)
-          .order("order_index", { ascending: false })
-          .limit(1)
-          .single();
-        const nextIndex = (lastVideo?.order_index ?? -1) + 1;
-
         const displayName = `${finalName}.${ext}`;
-        const { error: dbError } = await supabase.from("videos").insert({
-          filename: displayName,
-          storage_path: filePath,
-          file_size: fileToUpload.size,
-          user_id: userId,
-          duration: Math.round(videoDuration),
-          order_index: nextIndex,
+        const { data: rpcData, error: dbError } = await supabase.rpc("insert_video", {
+          p_filename: displayName,
+          p_storage_path: filePath,
+          p_file_size: fileToUpload.size,
+          p_duration: Math.round(videoDuration),
+          p_mime_type: fileToUpload.type || "video/mp4",
         });
 
-        if (dbError) {
+        if (dbError || !(rpcData as any)?.ok) {
           updateEntry(i, { status: "error" });
-          toast({ title: `Erro ao registrar "${entry.name}"`, description: dbError.message, variant: "destructive" });
+          const errMsg = dbError?.message ?? (rpcData as any)?.error ?? "Erro desconhecido";
+          toast({ title: `Erro ao registrar "${entry.name}"`, description: errMsg, variant: "destructive" });
+          await supabase.rpc("log_upload_error", {
+            p_filename: entry.name,
+            p_error_message: errMsg,
+            p_stage: "db_insert",
+          });
           continue;
         }
 
