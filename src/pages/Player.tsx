@@ -213,11 +213,11 @@ const Player = () => {
       .finally(() => setLoading(false));
   }, [token, fetchPlaylist]);
 
-  // Polling leve a cada 15s — só recarrega se updated_at mudou
+  // Polling a cada 15s
   useEffect(() => {
     if (!token || !playlist.length) return;
     const interval = setInterval(() => {
-      fetchPlaylist(false).catch(() => {});
+      fetchPlaylist().catch(() => {});
     }, 15_000);
     return () => clearInterval(interval);
   }, [token, playlist.length, fetchPlaylist]);
