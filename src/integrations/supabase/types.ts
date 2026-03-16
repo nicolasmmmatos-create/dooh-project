@@ -459,6 +459,10 @@ export type Database = {
             }
             Returns: Json
           }
+      force_playlist_refresh: {
+        Args: { p_playlist_id: string }
+        Returns: undefined
+      }
       get_active_screens: { Args: { p_playlist_id: string }; Returns: number }
       get_all_active_screens: {
         Args: never

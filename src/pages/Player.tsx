@@ -36,20 +36,28 @@ const Player = () => {
   const videoStartTimeRef = useRef(Date.now());
   const deviceIdRef = useRef("");
 
-  const fetchPlaylist = useCallback(async () => {
-    const { data: tokenRows, error: tokenErr } = await (supabase.rpc as any)("validate_token", { p_token: token! });
-    if (tokenErr || !tokenRows || (tokenRows as any[]).length === 0) throw new Error("Token inválido ou expirado");
+  const lastUpdatedAtRef = useRef<string>("");
 
-    const row = tokenRows[0] as any;
-    setPlaylistName(row.playlist_name);
+  const fetchPlaylist = useCallback(async (forceReload = true) => {
+    // Lightweight poll: só recarrega se updated_at mudou
+    if (!forceReload) {
+      const { data: updatedAt } = await supabase.rpc("get_playlist_updated_at", { p_token: token! });
+      if (updatedAt && updatedAt === lastUpdatedAtRef.current) return playlistRef.current;
+    }
 
-    const videoUrls: string[] = row.video_urls || [];
-    const videoPages: number[] = row.video_pages || [];
-    const videoDurations: number[] = row.video_durations || [];
+    const { data: row, error: tokenErr } = await supabase.rpc("get_playlist_by_token", { p_token: token! });
+    if (tokenErr || !row || (row as any).error) throw new Error("Token inválido ou expirado");
 
-    // URL pública direta — sem createSignedUrl, compatível com webOS 4.x
-    const videos: VideoItem[] = videoUrls.map((storagePath, i) => ({
-      id: String(i),
+    setPlaylistName((row as any).playlist_name);
+    lastUpdatedAtRef.current = (row as any).updated_at || "";
+
+    const videoUrls: string[] = (row as any).video_urls || [];
+    const videoIds: string[] = (row as any).video_ids || [];
+    const videoPages: number[] = (row as any).video_pages || [];
+    const videoDurations: number[] = (row as any).video_durations || [];
+
+    const videos: VideoItem[] = videoUrls.map((storagePath: string, i: number) => ({
+      id: videoIds[i] || String(i),
       url: `${PROJECT_URL}/storage/v1/object/public/videos/${storagePath}`,
       filename: storagePath.split("/").pop() || "",
       duration: videoDurations[i] || 0,
@@ -213,12 +221,12 @@ const Player = () => {
       .finally(() => setLoading(false));
   }, [token, fetchPlaylist]);
 
-  // Polling for playlist updates every 30s
+  // Polling leve a cada 15s — só recarrega se updated_at mudou
   useEffect(() => {
     if (!token || !playlist.length) return;
     const interval = setInterval(() => {
-      fetchPlaylist().catch(() => {});
-    }, 30_000);
+      fetchPlaylist(false).catch(() => {});
+    }, 15_000);
     return () => clearInterval(interval);
   }, [token, playlist.length, fetchPlaylist]);
 
