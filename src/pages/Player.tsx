@@ -36,25 +36,17 @@ const Player = () => {
   const videoStartTimeRef = useRef(Date.now());
   const deviceIdRef = useRef("");
 
-  const lastUpdatedAtRef = useRef<string>("");
-
-  const fetchPlaylist = useCallback(async (forceReload = true) => {
-    // Lightweight poll: só recarrega se updated_at mudou
-    if (!forceReload) {
-      const { data: updatedAt } = await supabase.rpc("get_playlist_updated_at", { p_token: token! });
-      if (updatedAt && updatedAt === lastUpdatedAtRef.current) return playlistRef.current;
-    }
-
+  const fetchPlaylist = useCallback(async () => {
     const { data: row, error: tokenErr } = await supabase.rpc("get_playlist_by_token", { p_token: token! });
     if (tokenErr || !row || (row as any).error) throw new Error("Token inválido ou expirado");
 
-    setPlaylistName((row as any).playlist_name);
-    lastUpdatedAtRef.current = (row as any).updated_at || "";
+    const data = row as any;
+    setPlaylistName(data.playlist_name);
 
-    const videoUrls: string[] = (row as any).video_urls || [];
-    const videoIds: string[] = (row as any).video_ids || [];
-    const videoPages: number[] = (row as any).video_pages || [];
-    const videoDurations: number[] = (row as any).video_durations || [];
+    const videoUrls: string[] = data.video_urls || [];
+    const videoIds: string[] = data.video_ids || [];
+    const videoPages: number[] = data.video_pages || [];
+    const videoDurations: number[] = data.video_durations || [];
 
     const videos: VideoItem[] = videoUrls.map((storagePath: string, i: number) => ({
       id: videoIds[i] || String(i),
@@ -221,11 +213,11 @@ const Player = () => {
       .finally(() => setLoading(false));
   }, [token, fetchPlaylist]);
 
-  // Polling leve a cada 15s — só recarrega se updated_at mudou
+  // Polling a cada 15s
   useEffect(() => {
     if (!token || !playlist.length) return;
     const interval = setInterval(() => {
-      fetchPlaylist(false).catch(() => {});
+      fetchPlaylist().catch(() => {});
     }, 15_000);
     return () => clearInterval(interval);
   }, [token, playlist.length, fetchPlaylist]);
