@@ -118,16 +118,23 @@ const PlaylistThumbnail = memo(React.forwardRef<HTMLDivElement, PlaylistThumbnai
       }
     }
 
-    if (targetIndex !== currentIndexRef.current || !readyRef.current) {
+    if (targetIndex !== currentIndexRef.current) {
       currentIndexRef.current = targetIndex;
       readyRef.current = false;
-      vid.src = videoUrls[targetIndex];
-      vid.load();
-      vid.onloadeddata = () => {
-        readyRef.current = true;
-        vid.currentTime = Math.min(localTime, vid.duration - 0.01);
-      };
+
+      // Debounce source change — só troca se o mouse parar 80ms neste vídeo
+      const newSrc = videoUrls[targetIndex];
+      clearTimeout((vid as any)._srcTimer);
+      (vid as any)._srcTimer = setTimeout(() => {
+        vid.src = newSrc;
+        vid.load();
+        vid.onloadeddata = () => {
+          readyRef.current = true;
+          vid.currentTime = Math.min(localTime, vid.duration - 0.01);
+        };
+      }, 80);
     } else if (readyRef.current) {
+      clearTimeout((vid as any)._srcTimer);
       vid.currentTime = Math.min(localTime, vid.duration - 0.01);
     }
   }, [videoUrls]);
