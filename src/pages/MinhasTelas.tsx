@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Monitor, RefreshCw, MapPin, Clock, Globe, Cpu, Edit2, Trash2, Wifi, WifiOff } from "lucide-react";
+import { Monitor, RefreshCw, MapPin, Clock, Globe, Cpu, Edit2, Trash2, Wifi, WifiOff, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
