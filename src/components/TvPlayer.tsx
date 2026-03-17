@@ -66,7 +66,7 @@ export default function TvPlayer({ token }: TvPlayerProps) {
         p_device_id: deviceIdRef.current,
         p_video_id: currentVideo.id,
         p_duration: watched,
-      }).catch(() => {});
+      } as any).then(() => {}).catch(() => {});
     }
 
     setOpacity(0);
