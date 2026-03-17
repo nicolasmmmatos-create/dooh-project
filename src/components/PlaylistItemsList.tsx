@@ -118,32 +118,39 @@ const PlaylistItemsList = ({ playlistId, onChanged, onPageChange }: PlaylistItem
   };
 
   const handleDragEnter = (index: number) => {
+    const from = dragItemRef.current;
+    if (from === null || from === index) return;
     dragOverRef.current = index;
+
+    // Preview em tempo real: reordena visualmente durante o arraste
+    const newItems = [...pageItems];
+    const [moved] = newItems.splice(from, 1);
+    newItems.splice(index, 0, moved);
+    const updated = newItems.map((item, i) => ({ ...item, order_index: i }));
+
+    dragItemRef.current = index;
+    setDragIndex(index);
+
+    setAllItems((prev) => {
+      const others = prev.filter((v) => v.page_number !== activePage);
+      return [...others, ...updated].sort(
+        (a, b) => (a.page_number - b.page_number) || ((a.order_index || 0) - (b.order_index || 0))
+      );
+    });
   };
 
   const handleDragEnd = async () => {
-    const from = dragItemRef.current;
-    const to = dragOverRef.current;
+    const finalItems = allItems
+      .filter((v) => v.page_number === activePage)
+      .map((item, i) => ({ ...item, order_index: i }));
+
     setDragIndex(null);
     dragItemRef.current = null;
     dragOverRef.current = null;
 
-    if (from === null || to === null || from === to) return;
-
-    const newItems = [...pageItems];
-    const [moved] = newItems.splice(from, 1);
-    newItems.splice(to, 0, moved);
-    const updated = newItems.map((item, i) => ({ ...item, order_index: i }));
-
-    // Update allItems
-    setAllItems((prev) => {
-      const others = prev.filter((v) => v.page_number !== activePage);
-      return [...others, ...updated].sort((a, b) => (a.page_number - b.page_number) || ((a.order_index || 0) - (b.order_index || 0)));
-    });
-
     setSaving(true);
     await Promise.all(
-      updated.map((item) =>
+      finalItems.map((item) =>
         supabase.from("videos").update({ order_index: item.order_index }).eq("id", item.id)
       )
     );
