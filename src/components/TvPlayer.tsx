@@ -58,6 +58,17 @@ export default function TvPlayer({ token }: TvPlayerProps) {
     clearTimeout(safetyTimer.current);
     errorCount.current = 0;
 
+    // Record analytics for current video
+    const currentVideo = videos[currentIndex];
+    if (currentVideo && deviceIdRef.current) {
+      const watched = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
+      supabase.rpc("record_analytics", {
+        p_device_id: deviceIdRef.current,
+        p_video_id: currentVideo.id,
+        p_duration: watched,
+      }).catch(() => {});
+    }
+
     setOpacity(0);
 
     setTimeout(() => {
@@ -67,7 +78,7 @@ export default function TvPlayer({ token }: TvPlayerProps) {
           : Math.min(prev + 1, videos.length - 1)
       );
     }, transitionDuration);
-  }, [videos.length, playlist && playlist.loop, transitionDuration]);
+  }, [videos, currentIndex, playlist, transitionDuration]);
 
   // Single useEffect — reacts to currentIndex, loads and plays
   useEffect(() => {
