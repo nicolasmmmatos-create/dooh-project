@@ -27,25 +27,26 @@ const PlaylistThumbnail = memo(React.forwardRef<HTMLDivElement, PlaylistThumbnai
   const tooltipRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef(0);
 
-  // Preload durations for all videos
+  // Preload durations for all videos — parallel, not sequential
   useEffect(() => {
     if (videoUrls.length === 0) return;
     let cancelled = false;
 
     const loadDurations = async () => {
-      const durations: number[] = [];
-      for (const url of videoUrls) {
-        const dur = await new Promise<number>((resolve) => {
-          const v = document.createElement("video");
-          v.preload = "metadata";
-          v.muted = true;
-          v.src = url;
-          v.onloadedmetadata = () => { resolve(v.duration || 5); v.src = ""; };
-          v.onerror = () => { resolve(5); v.src = ""; };
-        });
-        if (cancelled) return;
-        durations.push(dur);
-      }
+      const durations = await Promise.all(
+        videoUrls.map(
+          (url) =>
+            new Promise<number>((resolve) => {
+              const v = document.createElement("video");
+              v.preload = "metadata";
+              v.muted = true;
+              v.src = url;
+              v.onloadedmetadata = () => { resolve(v.duration || 5); v.src = ""; };
+              v.onerror = () => { resolve(5); v.src = ""; };
+            })
+        )
+      );
+      if (cancelled) return;
       durationsRef.current = durations;
       totalDurationRef.current = durations.reduce((a, b) => a + b, 0);
     };
