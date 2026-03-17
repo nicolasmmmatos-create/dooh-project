@@ -137,6 +137,19 @@ const MinhasTelas = () => {
     });
   }
 
+  async function handleSetRotation(deviceId: string, rotation: number) {
+    const { error } = await supabase.rpc("set_device_rotation", {
+      p_device_id: deviceId,
+      p_rotation: rotation,
+    });
+    if (error) {
+      toast({ title: "Erro ao rotacionar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setDevices((prev) => prev.map((d) => d.id === deviceId ? { ...d, rotation } : d));
+    toast({ title: `Rotação definida: ${rotation}°` });
+  }
+
   async function handleRemove(deviceId: string) {
     var { error } = await supabase.rpc("remove_device", { p_device_id: deviceId });
     if (error) {
