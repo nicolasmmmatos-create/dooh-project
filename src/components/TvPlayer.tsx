@@ -8,12 +8,32 @@ interface TvPlayerProps {
 
 export default function TvPlayer({ token }: TvPlayerProps) {
   const { playlist, videos, loading, error } = useTvPlayer(token);
+
+  // Capture device_id from heartbeat
+  useEffect(() => {
+    if (!token) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase.rpc("device_heartbeat" as any, {
+          p_token: token,
+          p_fingerprint: token,
+          p_user_agent: navigator.userAgent,
+        });
+        if (data && (data as any).device_id) {
+          deviceIdRef.current = (data as any).device_id;
+        }
+      } catch {}
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [token]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safetyTimer = useRef<ReturnType<typeof setTimeout>>();
   const isTransitioning = useRef(false);
   const errorCount = useRef(0);
+  const videoStartTimeRef = useRef<number>(Date.now());
+  const deviceIdRef = useRef<string>("");
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [opacity, setOpacity] = useState(1);
@@ -38,6 +58,17 @@ export default function TvPlayer({ token }: TvPlayerProps) {
     clearTimeout(safetyTimer.current);
     errorCount.current = 0;
 
+    // Record analytics for current video
+    const currentVideo = videos[currentIndex];
+    if (currentVideo && deviceIdRef.current) {
+      const watched = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
+      void supabase.rpc("record_analytics", {
+        p_device_id: deviceIdRef.current,
+        p_video_id: currentVideo.id,
+        p_duration: watched,
+      } as any);
+    }
+
     setOpacity(0);
 
     setTimeout(() => {
@@ -47,7 +78,7 @@ export default function TvPlayer({ token }: TvPlayerProps) {
           : Math.min(prev + 1, videos.length - 1)
       );
     }, transitionDuration);
-  }, [videos.length, playlist && playlist.loop, transitionDuration]);
+  }, [videos, currentIndex, playlist, transitionDuration]);
 
   // Single useEffect — reacts to currentIndex, loads and plays
   useEffect(() => {
@@ -68,6 +99,7 @@ export default function TvPlayer({ token }: TvPlayerProps) {
       v.removeEventListener("canplay", handleReady);
       setOpacity(1);
       isTransitioning.current = false;
+      videoStartTimeRef.current = Date.now();
       v.play().catch(() => {});
     };
 
