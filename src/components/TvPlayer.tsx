@@ -62,11 +62,11 @@ export default function TvPlayer({ token }: TvPlayerProps) {
     const currentVideo = videos[currentIndex];
     if (currentVideo && deviceIdRef.current) {
       const watched = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
-      supabase.rpc("record_analytics", {
+      void supabase.rpc("record_analytics", {
         p_device_id: deviceIdRef.current,
         p_video_id: currentVideo.id,
         p_duration: watched,
-      } as any).then(() => {}).catch(() => {});
+      } as any);
     }
 
     setOpacity(0);
