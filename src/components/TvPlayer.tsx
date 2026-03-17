@@ -14,6 +14,8 @@ export default function TvPlayer({ token }: TvPlayerProps) {
   const safetyTimer = useRef<ReturnType<typeof setTimeout>>();
   const isTransitioning = useRef(false);
   const errorCount = useRef(0);
+  const videoStartTimeRef = useRef<number>(Date.now());
+  const deviceIdRef = useRef<string>("");
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [opacity, setOpacity] = useState(1);
