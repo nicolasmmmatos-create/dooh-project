@@ -34,6 +34,7 @@ interface DeviceRow {
   playlist_id: string | null;
   playlist_name: string | null;
   is_online: boolean | null;
+  rotation: number;
 }
 
 type StatusFilter = "all" | "online" | "offline";
