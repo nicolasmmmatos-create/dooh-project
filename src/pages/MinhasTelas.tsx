@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Monitor, RefreshCw, MapPin, Clock, Globe, Cpu, Edit2, Trash2, Wifi, WifiOff } from "lucide-react";
+import { Monitor, RefreshCw, MapPin, Clock, Globe, Cpu, Edit2, Trash2, Wifi, WifiOff, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ interface DeviceRow {
   playlist_id: string | null;
   playlist_name: string | null;
   is_online: boolean | null;
+  rotation: number;
 }
 
 type StatusFilter = "all" | "online" | "offline";
@@ -136,6 +137,19 @@ const MinhasTelas = () => {
     });
   }
 
+  async function handleSetRotation(deviceId: string, rotation: number) {
+    const { error } = await supabase.rpc("set_device_rotation", {
+      p_device_id: deviceId,
+      p_rotation: rotation,
+    });
+    if (error) {
+      toast({ title: "Erro ao rotacionar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setDevices((prev) => prev.map((d) => d.id === deviceId ? { ...d, rotation } : d));
+    toast({ title: `Rotação definida: ${rotation}°` });
+  }
+
   async function handleRemove(deviceId: string) {
     var { error } = await supabase.rpc("remove_device", { p_device_id: deviceId });
     if (error) {
@@ -224,6 +238,19 @@ const MinhasTelas = () => {
                     </h3>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {online && (
+                      <select
+                        value={d.rotation}
+                        onChange={(e) => handleSetRotation(d.id, Number(e.target.value))}
+                        className="h-7 text-xs rounded-md border border-border bg-muted text-foreground px-1 cursor-pointer"
+                        title="Rotação da tela"
+                      >
+                        <option value={0}>0°</option>
+                        <option value={90}>90°</option>
+                        <option value={180}>180°</option>
+                        <option value={270}>270°</option>
+                      </select>
+                    )}
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={function () { openEdit(d); }}>
                       <Edit2 className="w-3.5 h-3.5" />
                     </Button>
