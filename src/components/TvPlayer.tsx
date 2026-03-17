@@ -8,6 +8,24 @@ interface TvPlayerProps {
 
 export default function TvPlayer({ token }: TvPlayerProps) {
   const { playlist, videos, loading, error } = useTvPlayer(token);
+
+  // Capture device_id from heartbeat
+  useEffect(() => {
+    if (!token) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase.rpc("device_heartbeat" as any, {
+          p_token: token,
+          p_fingerprint: token,
+          p_user_agent: navigator.userAgent,
+        });
+        if (data && (data as any).device_id) {
+          deviceIdRef.current = (data as any).device_id;
+        }
+      } catch {}
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [token]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
