@@ -99,6 +99,7 @@ export default function TvPlayer({ token }: TvPlayerProps) {
       v.removeEventListener("canplay", handleReady);
       setOpacity(1);
       isTransitioning.current = false;
+      videoStartTimeRef.current = Date.now();
       v.play().catch(() => {});
     };
 
