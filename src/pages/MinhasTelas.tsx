@@ -238,6 +238,19 @@ const MinhasTelas = () => {
                     </h3>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {online && (
+                      <select
+                        value={d.rotation}
+                        onChange={(e) => handleSetRotation(d.id, Number(e.target.value))}
+                        className="h-7 text-xs rounded-md border border-border bg-muted text-foreground px-1 cursor-pointer"
+                        title="Rotação da tela"
+                      >
+                        <option value={0}>0°</option>
+                        <option value={90}>90°</option>
+                        <option value={180}>180°</option>
+                        <option value={270}>270°</option>
+                      </select>
+                    )}
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={function () { openEdit(d); }}>
                       <Edit2 className="w-3.5 h-3.5" />
                     </Button>

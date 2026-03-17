@@ -138,6 +138,7 @@ export type Database = {
           name: string | null
           playlist_id: string | null
           region: string | null
+          rotation: number
           timezone: string | null
           user_agent: string | null
         }
@@ -157,6 +158,7 @@ export type Database = {
           name?: string | null
           playlist_id?: string | null
           region?: string | null
+          rotation?: number
           timezone?: string | null
           user_agent?: string | null
         }
@@ -176,6 +178,7 @@ export type Database = {
           name?: string | null
           playlist_id?: string | null
           region?: string | null
+          rotation?: number
           timezone?: string | null
           user_agent?: string | null
         }
@@ -514,6 +517,7 @@ export type Database = {
           playlist_id: string
           playlist_name: string
           region: string
+          rotation: number
           timezone: string
           user_agent: string
         }[]
@@ -597,6 +601,10 @@ export type Database = {
         Returns: undefined
       }
       remove_device: { Args: { p_device_id: string }; Returns: Json }
+      set_device_rotation: {
+        Args: { p_device_id: string; p_rotation: number }
+        Returns: undefined
+      }
       set_user_plan: {
         Args: { p_plan: string; p_user_id: string }
         Returns: undefined
