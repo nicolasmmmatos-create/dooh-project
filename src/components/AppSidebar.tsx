@@ -20,8 +20,9 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const location = useLocation();
 
   const handleSignOut = async () => {
-    // Will be connected to Supabase auth
-    console.log("Sign out");
+    const { supabase } = await import("@/integrations/supabase/client");
+    await supabase.auth.signOut();
+    window.location.href = "/";
   };
 
   return (
