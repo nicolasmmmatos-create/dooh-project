@@ -190,6 +190,9 @@ export default function TvPlayer({ token }: TvPlayerProps) {
     };
   }, []);
 
+  const rotation = (playlist as any)?.rotation ?? 0;
+  const needsSwap = rotation === 90 || rotation === 270;
+
   const rootStyle: React.CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -202,6 +205,15 @@ export default function TvPlayer({ token }: TvPlayerProps) {
     backgroundColor: "black",
     zIndex: 2147483647,
     overflow: "hidden",
+    transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
+    transformOrigin: "center center",
+    ...(needsSwap ? {
+      width: "100vh",
+      height: "100vw",
+      top: "50%",
+      left: "50%",
+      transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+    } : {}),
   };
 
   if (loading) {
